@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MailDesk UniFECAF</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#22263a;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#f0f2f8;--muted:#7b8099;
+  --accent:#4f7ef8;--accent2:#6c63ff;
+  --green:#22c55e;--amber:#f59e0b;--red:#ef4444;
+  --purple:#a78bfa;--teal:#14b8a6;--pink:#ec4899;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+
+/* SETUP */
+#setupScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem}
+.setup-card{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:2.5rem;max-width:520px;width:100%}
+.setup-logo{display:flex;align-items:center;gap:10px;margin-bottom:2rem}
+.logo-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.setup-title{font-size:22px;font-weight:600;margin-bottom:6px}
+.setup-desc{color:var(--muted);font-size:13px;margin-bottom:1.5rem;line-height:1.6}
+.step-block{background:var(--bg3);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem;border:1px solid var(--border)}
+.step-num{font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.step-title{font-size:13px;font-weight:500;margin-bottom:6px}
+.step-body{font-size:12px;color:var(--muted);line-height:1.6}
+.step-body a{color:var(--accent);text-decoration:none}
+.field-group{margin-top:10px}
+.field-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;display:block}
+input[type=text],input[type=password]{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;transition:border-color .2s}
+input[type=text]:focus,input[type=password]:focus{border-color:var(--accent)}
+.btn-primary{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;padding:12px;color:#fff;font-size:14px;font-weight:500;cursor:pointer;margin-top:1.5rem;transition:opacity .2s;font-family:'Inter',sans-serif}
+.btn-primary:hover{opacity:.9}
+.hint{font-size:11px;color:var(--muted);text-align:center;margin-top:1rem;line-height:1.6}
+
+/* MAIN */
+#mainApp{display:none;min-height:100vh}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:1.25rem 0;z-index:10;overflow-y:auto}
+.sidebar-logo{display:flex;align-items:center;gap:8px;padding:0 1.25rem 1.25rem;border-bottom:1px solid var(--border);margin-bottom:1rem;flex-shrink:0}
+.sidebar-logo .logo-icon{width:32px;height:32px;font-size:14px;border-radius:8px}
+.sidebar-logo .logo-text{font-size:15px;font-weight:600}
+.sidebar-section{padding:0 1rem;margin-bottom:1.5rem}
+.sidebar-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;padding:0 .25rem;margin-bottom:.5rem}
+.cat-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;cursor:pointer;transition:background .15s;font-size:13px;color:var(--muted);margin-bottom:2px}
+.cat-item:hover{background:var(--bg3);color:var(--text)}
+.cat-item.active{background:rgba(79,126,248,.15);color:var(--accent)}
+.cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cat-count{margin-left:auto;font-size:11px;background:var(--bg3);padding:1px 6px;border-radius:99px;color:var(--muted)}
+.cat-item.active .cat-count{background:rgba(79,126,248,.2);color:var(--accent)}
+.sidebar-bottom{margin-top:auto;padding:1rem 1.25rem;border-top:1px solid var(--border);flex-shrink:0}
+.account-chip{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
+.account-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
+
+.main-area{margin-left:240px;display:flex;flex-direction:column;min-height:100vh}
+.topbar{position:sticky;top:0;background:rgba(15,17,23,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:.75rem 1.5rem;display:flex;align-items:center;gap:10px;z-index:5;flex-wrap:wrap}
+.search-wrap{flex:1;min-width:200px;display:flex;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:0 12px;gap:8px}
+.search-wrap input{flex:1;background:transparent;border:none;padding:9px 0;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none}
+.search-wrap input::placeholder{color:var(--muted)}
+.filter-sel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;outline:none}
+.btn-fetch{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:8px;padding:7px 16px;color:#fff;font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:6px;transition:opacity .2s;white-space:nowrap}
+.btn-fetch:hover{opacity:.85}
+.btn-fetch:disabled{opacity:.5;cursor:not-allowed}
+
+.prog-wrap{padding:0 1.5rem .5rem;display:none}
+.prog-bar{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-bottom:4px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .3s}
+.prog-txt{font-size:11px;color:var(--muted)}
+
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:none}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem}
+.stat-label{font-size:10px;color:var(--muted);margin-bottom:4px}
+.stat-val{font-size:22px;font-weight:600}
+
+.content-area{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);flex:1}
+.email-col{border-right:1px solid var(--border);overflow-y:auto;height:calc(100vh - 140px)}
+.email-item{padding:.85rem 1.25rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;position:relative}
+.email-item:hover{background:rgba(255,255,255,.03)}
+.email-item.active{background:rgba(79,126,248,.08);border-left:2px solid var(--accent)}
+.email-item.unread .e-subject{font-weight:600}
+.e-top{display:flex;gap:10px;align-items:flex-start}
+.avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.e-meta{flex:1;min-width:0}
+.e-from{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.e-subject{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.e-preview{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.e-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.e-time{font-size:10px;color:var(--muted)}
+.tag{font-size:10px;padding:2px 7px;border-radius:99px;font-weight:500;white-space:nowrap}
+.t-urgente{background:rgba(239,68,68,.15);color:#fca5a5}
+.t-pendente{background:rgba(245,158,11,.15);color:#fcd34d}
+.t-info{background:rgba(123,128,153,.12);color:var(--muted)}
+.t-aprov{background:rgba(79,126,248,.15);color:#93b4fb}
+.t-bolsaf{background:rgba(167,139,250,.15);color:#c4b5fd}
+.t-bolsai{background:rgba(108,99,255,.15);color:#a5b4fc}
+.t-inadimp{background:rgba(239,68,68,.12);color:#fca5a5}
+.t-mat{background:rgba(34,197,94,.12);color:#86efac}
+.t-oper{background:rgba(20,184,166,.12);color:#5eead4}
+.t-rh{background:rgba(236,72,153,.12);color:#f9a8d4}
+.t-fin{background:rgba(245,158,11,.12);color:#fcd34d}
+.t-acad{background:rgba(56,189,248,.12);color:#7dd3fc}
+.t-reun{background:rgba(123,128,153,.12);color:#a1a8c4}
+.udot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:5px}
+
+.detail-col{overflow-y:auto;height:calc(100vh - 140px);padding:1.5rem;display:none}
+.detail-col.visible{display:block}
+.d-subject{font-size:17px;font-weight:600;margin-bottom:.5rem;line-height:1.4}
+.d-meta{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);margin-bottom:1rem;flex-wrap:wrap}
+.d-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:1rem}
+.divider{border:none;border-top:1px solid var(--border);margin:1rem 0}
+.d-body{font-size:13px;line-height:1.8;color:rgba(240,242,248,.8);white-space:pre-wrap;margin-bottom:1.5rem;max-height:200px;overflow-y:auto}
+.d-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem}
+.btn-sm{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 12px;color:var(--text);font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:5px;transition:background .15s}
+.btn-sm:hover{background:rgba(255,255,255,.07)}
+
+.ai-panel{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.25rem}
+.ai-header{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;color:var(--accent);margin-bottom:1rem;text-transform:uppercase;letter-spacing:.07em}
+.ai-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.sug-item{text-align:left;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--text);cursor:pointer;margin-bottom:7px;transition:border-color .15s,background .15s;width:100%;font-family:'Inter',sans-serif;line-height:1.6;background:var(--bg3)}
+.sug-item:hover{border-color:var(--accent);background:rgba(79,126,248,.06)}
+.sug-item.chosen{border-color:var(--accent);background:rgba(79,126,248,.1);color:#c4d4fd}
+.reply-area{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;resize:vertical;min-height:90px;outline:none;transition:border-color .2s;margin:.75rem 0;line-height:1.6}
+.reply-area:focus{border-color:var(--accent)}
+.reply-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn-send{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:8px;padding:8px 16px;color:#fff;font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:5px}
+.btn-send:hover{opacity:.85}
+
+.spinner{width:14px;height:14px;border:2px solid rgba(79,126,248,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:10px 0}
+
+.empty-state{text-align:center;padding:3rem 2rem;color:var(--muted)}
+.empty-icon{font-size:32px;margin-bottom:.75rem}
+.empty-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px}
+.empty-desc{font-size:12px;line-height:1.6}
+
+.load-more{text-align:center;padding:1rem;border-top:1px solid var(--border)}
+.btn-load-more{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 20px;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;transition:color .15s}
+.btn-load-more:hover{color:var(--text)}
+
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:.75rem 1rem;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px;transform:translateY(80px);opacity:0;transition:all .3s;z-index:100;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.toast.show{transform:translateY(0);opacity:1}
+.toast-dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+
+.kbd{font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setupScreen">
+  <div class="setup-card">
+    <div class="setup-logo">
+      <div class="logo-icon">📬</div>
+      <div>
+        <div style="font-size:18px;font-weight:600">MailDesk UniFECAF</div>
+        <div style="font-size:12px;color:var(--muted)">Organização inteligente de e-mails</div>
+      </div>
+    </div>
+    <div class="setup-title">Configuração inicial</div>
+    <div class="setup-desc">Conecte sua conta Google e a IA da Anthropic. Suas credenciais ficam salvas só no seu navegador.</div>
+
+    <div class="step-block">
+      <div class="step-num">Passo 1 — Google OAuth</div>
+      <div class="step-title">Client ID do Google Cloud</div>
+      <div class="step-body">
+        <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> → APIs & Services → Credentials → OAuth 2.0 Client ID (Web). Em "Authorized JS origins" coloque a URL deste site no Netlify.
+      </div>
+      <div class="field-group">
+        <label class="field-label">Google Client ID</label>
+        <input type="text" id="googleClientId" placeholder="000000000000-xxx.apps.googleusercontent.com">
+      </div>
+    </div>
+
+    <div class="step-block">
+      <div class="step-num">Passo 2 — Anthropic</div>
+      <div class="step-title">Chave da API Anthropic</div>
+      <div class="step-body">
+        <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys → Create Key. Começa com <span class="kbd">sk-ant-</span>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Anthropic API Key</label>
+        <input type="password" id="anthropicKey" placeholder="sk-ant-api03-...">
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="startApp()">Entrar no painel →</button>
+    <div class="hint">Suas chaves são salvas no localStorage e nunca enviadas a terceiros além das APIs oficiais.</div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">📬</div>
+      <div class="logo-text">MailDesk</div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Visualizar</div>
+      <div class="cat-item active" onclick="setFilter('todos',this)">
+        <div class="cat-dot" style="background:var(--muted)"></div>Todos
+        <span class="cat-count" id="cnt-todos">0</span>
+      </div>
+      <div class="cat-item" onclick="setFilter('naoLido',this)">
+        <div class="cat-dot" style="background:var(--accent)"></div>Não lidos
+        <span class="cat-count" id="cnt-naoLido">0</span>
+      </div>
+      <div class="cat-item" onclick="setFilter('urgente',this)">
+        <div class="cat-dot" style="background:var(--red)"></div>Urgentes
+        <span class="cat-count" id="cnt-urgente">0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Categorias</div>
+      <div class="cat-item" onclick="setFilter('aprovacao_desconto',this)"><div class="cat-dot" style="background:var(--accent)"></div>Aprovação desconto<span class="cat-count" id="cnt-aprovacao_desconto">0</span></div>
+      <div class="cat-item" onclick="setFilter('bolsa_funcionario',this)"><div class="cat-dot" style="background:var(--purple)"></div>Bolsa funcionário<span class="cat-count" id="cnt-bolsa_funcionario">0</span></div>
+      <div class="cat-item" onclick="setFilter('bolsa_integral',this)"><div class="cat-dot" style="background:var(--accent2)"></div>Bolsa integral<span class="cat-count" id="cnt-bolsa_integral">0</span></div>
+      <div class="cat-item" onclick="setFilter('inadimplencia',this)"><div class="cat-dot" style="background:var(--red)"></div>Inadimplência<span class="cat-count" id="cnt-inadimplencia">0</span></div>
+      <div class="cat-item" onclick="setFilter('matricula',this)"><div class="cat-dot" style="background:var(--green)"></div>Matrícula / captação<span class="cat-count" id="cnt-matricula">0</span></div>
+      <div class="cat-item" onclick="setFilter('operacional',this)"><div class="cat-dot" style="background:var(--teal)"></div>Operacional de polo<span class="cat-count" id="cnt-operacional">0</span></div>
+      <div class="cat-item" onclick="setFilter('rh',this)"><div class="cat-dot" style="background:var(--pink)"></div>RH / contratos<span class="cat-count" id="cnt-rh">0</span></div>
+      <div class="cat-item" onclick="setFilter('financeiro',this)"><div class="cat-dot" style="background:var(--amber)"></div>Financeiro / repasse<span class="cat-count" id="cnt-financeiro">0</span></div>
+      <div class="cat-item" onclick="setFilter('academico',this)"><div class="cat-dot" style="background:#38bdf8"></div>Acadêmico / AVA<span class="cat-count" id="cnt-academico">0</span></div>
+      <div class="cat-item" onclick="setFilter('reunioes',this)"><div class="cat-dot" style="background:var(--muted)"></div>Reuniões / relatórios<span class="cat-count" id="cnt-reunioes">0</span></div>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="account-chip">
+        <div class="account-dot"></div>
+        <span id="accountEmail" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Não conectado</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="topbar">
+      <div class="search-wrap">
+        <span style="color:var(--muted)">🔍</span>
+        <input type="text" id="searchKw" placeholder="Buscar por assunto, remetente, palavra-chave..." onkeydown="if(event.key==='Enter')fetchEmails()">
+      </div>
+      <select class="filter-sel" id="periodSel">
+        <option value="7">7 dias</option>
+        <option value="15">15 dias</option>
+        <option value="30" selected>30 dias</option>
+        <option value="60">60 dias</option>
+        <option value="90">90 dias</option>
+        <option value="180">6 meses</option>
+      </select>
+      <select class="filter-sel" id="limitSel">
+        <option value="30">30 e-mails</option>
+        <option value="50" selected>50 e-mails</option>
+        <option value="100">100 e-mails</option>
+      </select>
+      <select class="filter-sel" id="sortSel" onchange="renderList()">
+        <option value="prioridade">↕ Prioridade</option>
+        <option value="data">↕ Data</option>
+        <option value="remetente">↕ Remetente</option>
+      </select>
+      <button class="btn-fetch" id="fetchBtn" onclick="fetchEmails()">
+        <span id="fetchSpinner" style="display:none" class="spinner"></span>
+        <span id="fetchTxt">⟳ Buscar</span>
+      </button>
+    </div>
+
+    <div class="prog-wrap" id="progWrap">
+      <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      <div class="prog-txt" id="progTxt"></div>
+    </div>
+
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card"><div class="stat-label">Total</div><div class="stat-val" id="s-total">0</div></div>
+      <div class="stat-card"><div class="stat-label">Não lidos</div><div class="stat-val" style="color:var(--accent)" id="s-unread">0</div></div>
+      <div class="stat-card"><div class="stat-label">Urgentes</div><div class="stat-val" style="color:var(--red)" id="s-urgent">0</div></div>
+      <div class="stat-card"><div class="stat-label">Aprovações</div><div class="stat-val" style="color:#93b4fb" id="s-aprov">0</div></div>
+      <div class="stat-card"><div class="stat-label">Bolsas</div><div class="stat-val" style="color:var(--purple)" id="s-bolsa">0</div></div>
+    </div>
+
+    <div class="content-area">
+      <div class="email-col" id="emailCol">
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <div class="empty-title">Nenhum e-mail carregado</div>
+          <div class="empty-desc">Clique em "Buscar" para carregar e classificar sua caixa de entrada com IA.</div>
+        </div>
+      </div>
+      <div class="detail-col" id="detailCol">
+        <div class="empty-state" style="margin-top:4rem">
+          <div class="empty-icon">👈</div>
+          <div class="empty-title">Selecione um e-mail</div>
+          <div class="empty-desc">Clique em qualquer e-mail para ver o conteúdo completo e receber sugestões de resposta com IA.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><div class="toast-dot"></div><span id="toastMsg"></span></div>
+
+<script src="https://accounts.google.com/gsi/client" async></script>
+<script>
+const CATS = {
+  aprovacao_desconto:{label:'Aprovação de desconto',tc:'t-aprov'},
+  bolsa_funcionario: {label:'Bolsa funcionário',   tc:'t-bolsaf'},
+  bolsa_integral:    {label:'Bolsa integral',       tc:'t-bolsai'},
+  inadimplencia:     {label:'Inadimplência',        tc:'t-inadimp'},
+  matricula:         {label:'Matrícula / captação', tc:'t-mat'},
+  operacional:       {label:'Operacional de polo',  tc:'t-oper'},
+  rh:                {label:'RH / contratos',       tc:'t-rh'},
+  financeiro:        {label:'Financeiro / repasse', tc:'t-fin'},
+  academico:         {label:'Acadêmico / AVA',      tc:'t-acad'},
+  reunioes:          {label:'Reuniões / relatórios',tc:'t-reun'},
+};
+
+const SYS = `Você é um assistente especializado em e-mails corporativos da UniFECAF, rede de ensino superior com polos franqueados em MG, MT, ES, MS e GO. O usuário é o Supervisor Comercial Lucas, responsável por aprovar descontos e bolsas, acompanhar metas de matrículas, adimplência (parcelas P1-P3) e alinhamento operacional com operadores de polo.
+
+Categorias disponíveis (use exatamente estes IDs):
+aprovacao_desconto | bolsa_funcionario | bolsa_integral | inadimplencia | matricula | operacional | rh | financeiro | academico | reunioes
+
+Prioridades: urgente (ação imediata, prazo curto, aprovação pendente) | pendente (requer ação, sem urgência) | informativo (apenas conhecimento)
+
+Responda SOMENTE com JSON sem markdown, sem explicação:
+{"categoria":"id_aqui","prioridade":"urgente","resumo":"resumo em até 12 palavras"}`;
+
+let emails=[], activeFilter='todos', selectedId=null;
+let ANTHROPIC_KEY='', GOOGLE_CLIENT_ID='', accessToken='';
+let tokenClient=null;
+let nextPageToken=null, isLoadingMore=false;
+
+// Detecta URL base para o proxy Netlify Function
+const PROXY_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:8888/.netlify/functions/claude-proxy'
+  : '/.netlify/functions/claude-proxy';
+
+function toast(msg, dur=3000){
+  const t=document.getElementById('toast');
+  document.getElementById('toastMsg').textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+function startApp(){
+  const gid=document.getElementById('googleClientId').value.trim();
+  const akey=document.getElementById('anthropicKey').value.trim();
+  if(!gid||!akey){toast('Preencha os dois campos para continuar.');return}
+  if(!akey.startsWith('sk-ant-')){toast('API key inválida. Deve começar com sk-ant-');return}
+  GOOGLE_CLIENT_ID=gid; ANTHROPIC_KEY=akey;
+  localStorage.setItem('mdu_gid',gid);
+  localStorage.setItem('mdu_akey',akey);
+  document.getElementById('setupScreen').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  initGoogleAuth();
+}
+
+function initGoogleAuth(){
+  if(typeof google==='undefined'){setTimeout(initGoogleAuth,500);return}
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:GOOGLE_CLIENT_ID,
+    scope:'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify',
+    callback:(resp)=>{
+      if(resp.access_token){
+        accessToken=resp.access_token;
+        fetchUserInfo();
+        toast('✓ Conta Google conectada!');
+      }
+    }
+  });
+}
+
+async function fetchUserInfo(){
+  try{
+    const r=await fetch('https://www.googleapis.com/oauth2/v2/userinfo',{headers:{Authorization:'Bearer '+accessToken}});
+    const d=await r.json();
+    document.getElementById('accountEmail').textContent=d.email||'Conectado';
+  }catch(e){}
+}
+
+function setProgress(pct,txt){
+  document.getElementById('progFill').style.width=pct+'%';
+  if(txt)document.getElementById('progTxt').textContent=txt;
+}
+
+// Chama IA via proxy Netlify Function
+async function callAI(messages, maxTokens=200){
+  const body={
+    model:'claude-sonnet-4-6',
+    max_tokens:maxTokens,
+    system:SYS,
+    messages,
+    _apiKey:ANTHROPIC_KEY
+  };
+  const r=await fetch(PROXY_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_KEY},
+    body:JSON.stringify(body)
+  });
+  if(!r.ok){
+    const err=await r.text();
+    console.error('Proxy error',r.status,err);
+    throw new Error('Erro na IA: '+r.status);
+  }
+  const d=await r.json();
+  return d.content?.[0]?.text||'';
+}
+
+async function classify(subject,snippet){
+  try{
+    const txt=await callAI([{role:'user',content:`Assunto: ${subject}\nPreview: ${snippet||'(sem preview)'}`}]);
+    const clean=txt.replace(/```json|```/g,'').trim();
+    return JSON.parse(clean);
+  }catch(e){
+    console.warn('Classify fallback',e);
+    return{categoria:'operacional',prioridade:'informativo',resumo:''};
+  }
+}
+
+async function genSuggestions(from,subject,snippet,cat){
+  const catLabel=CATS[cat]?.label||cat;
+  const sysExtra=SYS+`\n\nGere 3 sugestões de resposta curtas e prontas para uso. Tom profissional, direto, contexto "${catLabel}". SOMENTE JSON sem markdown:\n{"sugestoes":["resposta1","resposta2","resposta3"]}`;
+  try{
+    const body={
+      model:'claude-sonnet-4-6',
+      max_tokens:700,
+      system:sysExtra,
+      messages:[{role:'user',content:`De: ${from}\nAssunto: ${subject}\nConteúdo: ${snippet||'(sem conteúdo)'}`}],
+      _apiKey:ANTHROPIC_KEY
+    };
+    const r=await fetch(PROXY_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_KEY},
+      body:JSON.stringify(body)
+    });
+    if(!r.ok)throw new Error('Proxy '+r.status);
+    const d=await r.json();
+    const txt=(d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim();
+    return JSON.parse(txt);
+  }catch(e){
+    console.error('genSuggestions error',e);
+    return{sugestoes:[]};
+  }
+}
+
+async function fetchEmails(){
+  if(!accessToken){
+    if(!tokenClient){toast('Aguarde inicialização do Google...');return}
+    tokenClient.requestAccessToken();
+    return;
+  }
+  const limit=parseInt(document.getElementById('limitSel').value)||50;
+  document.getElementById('fetchBtn').disabled=true;
+  document.getElementById('fetchSpinner').style.display='inline-block';
+  document.getElementById('fetchTxt').textContent='Buscando...';
+  document.getElementById('progWrap').style.display='block';
+  document.getElementById('statsRow').style.display='none';
+  document.getElementById('emailCol').innerHTML='';
+  document.getElementById('detailCol').className='detail-col';
+  emails=[];selectedId=null;nextPageToken=null;
+  setProgress(5,'Conectando ao Gmail...');
+
+  const kw=document.getElementById('searchKw').value.trim();
+  const days=document.getElementById('periodSel').value;
+  let q=`in:inbox newer_than:${days}d`;
+  if(kw)q+=` ${kw}`;
+
+  // Busca lista de mensagens (não threads) para pegar headers corretamente
+  let msgIds=[];
+  try{
+    let url=`https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(q)}&maxResults=${limit}`;
+    const r=await fetch(url,{headers:{Authorization:'Bearer '+accessToken}});
+    const d=await r.json();
+    msgIds=d.messages||[];
+    nextPageToken=d.nextPageToken||null;
+  }catch(e){console.error(e)}
+
+  if(!msgIds.length){
+    toast('Nenhum e-mail encontrado. Usando demonstração.');
+    emails=demoData();
+    await classifyAll(emails);
+  }else{
+    setProgress(15,`Carregando ${msgIds.length} mensagens...`);
+    const raw=[];
+    // Busca em batches de 5 para não sobrecarregar
+    for(let i=0;i<msgIds.length;i+=5){
+      const batch=msgIds.slice(i,i+5);
+      const results=await Promise.all(batch.map(async({id})=>{
+        try{
+          const r=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,{
+            headers:{Authorization:'Bearer '+accessToken}
+          });
+          return await r.json();
+        }catch(e){return null}
+      }));
+      raw.push(...results.filter(Boolean));
+      setProgress(15+Math.round((i+5)/msgIds.length*30),`Carregando ${Math.min(i+5,msgIds.length)}/${msgIds.length}...`);
+    }
+
+    setProgress(45,'Classificando com IA...');
+    for(let i=0;i<raw.length;i++){
+      const msg=raw[i];
+      const hdrs=msg?.payload?.headers||[];
+      const gh=n=>(hdrs.find(h=>h.name?.toLowerCase()===n.toLowerCase())?.value||'');
+      const from=gh('From')||'Desconhecido';
+      const fm=from.match(/^"?([^"<]*)"?\s*<(.+?)>$/)
+             ||from.match(/^"?([^"<]+)"?$/);
+      const fromName=fm?(fm[1]||'').trim()||from:from;
+      const fromEmail=fm&&fm[2]?fm[2]:from;
+      const subject=gh('Subject')||'(sem assunto)';
+      const snippet=msg.snippet||'';
+      const dh=gh('Date');
+      const date=dh?new Date(dh):new Date(Date.now()-i*3600000*4);
+      const unread=(msg.labelIds||[]).includes('UNREAD');
+      const cl=await classify(subject,snippet);
+      emails.push({id:msg.id,threadId:msg.threadId,from:fromName,fromEmail,subject,snippet,date,unread,
+        categoria:cl.categoria||'operacional',prioridade:cl.prioridade||'informativo',resumo:cl.resumo||''});
+      setProgress(45+Math.round((i+1)/raw.length*50),`IA classificando ${i+1}/${raw.length}...`);
+    }
+  }
+
+  setProgress(100,'Pronto!');
+  setTimeout(()=>{document.getElementById('progWrap').style.display='none'},800);
+  document.getElementById('fetchBtn').disabled=false;
+  document.getElementById('fetchSpinner').style.display='none';
+  document.getElementById('fetchTxt').textContent='⟳ Buscar';
+  document.getElementById('statsRow').style.display='grid';
+  updateStats();updateCounts();renderList();
+}
+
+async function classifyAll(list){
+  setProgress(30,'Classificando demonstração com IA...');
+  for(let i=0;i<list.length;i++){
+    const cl=await classify(list[i].subject,list[i].snippet);
+    list[i]={...list[i],categoria:cl.categoria||'operacional',prioridade:cl.prioridade||'informativo',resumo:cl.resumo||''};
+    setProgress(30+Math.round((i+1)/list.length*60),`IA: ${i+1}/${list.length}`);
+  }
+}
+
+function tlabel(d){
+  const s=(Date.now()-d)/1000;
+  if(s<3600)return Math.floor(s/60)+'min';
+  if(s<86400)return Math.floor(s/3600)+'h';
+  if(s<604800)return d.toLocaleDateString('pt-BR',{weekday:'short'});
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+}
+
+function avatarStyle(email){
+  const p=[
+    {bg:'#1e3a5f',c:'#7fb3f5'},{bg:'#2d1f5e',c:'#b09cf5'},
+    {bg:'#1a3d2f',c:'#6dcfa0'},{bg:'#3d2009',c:'#f5b86d'},
+    {bg:'#3d1a2a',c:'#f58bb2'},{bg:'#1a3d3d',c:'#5eead4'},
+    {bg:'#3d2d1a',c:'#f5c26d'},{bg:'#2a1a3d',c:'#c4a0f5'},
+  ];
+  let h=0;for(let c of(email||''))h=(h*31+c.charCodeAt(0))&0xffff;
+  return p[h%p.length];
+}
+
+function ini(name){
+  const p=(name||'?').split(' ').filter(Boolean);
+  return p.length>=2?(p[0][0]+p[p.length-1][0]).toUpperCase():(p[0]?.[0]||'?').toUpperCase();
+}
+
+function getFiltered(){
+  let list=[...emails];
+  if(activeFilter==='naoLido')list=list.filter(e=>e.unread);
+  else if(activeFilter==='urgente')list=list.filter(e=>e.prioridade==='urgente');
+  else if(activeFilter!=='todos')list=list.filter(e=>e.categoria===activeFilter);
+  const sort=document.getElementById('sortSel')?.value||'prioridade';
+  const ord={urgente:0,pendente:1,informativo:2};
+  if(sort==='prioridade')list.sort((a,b)=>(ord[a.prioridade]??2)-(ord[b.prioridade]??2)||b.date-a.date);
+  else if(sort==='data')list.sort((a,b)=>b.date-a.date);
+  else list.sort((a,b)=>(a.from||'').localeCompare(b.from||''));
+  return list;
+}
+
+function renderList(){
+  const list=getFiltered();
+  const col=document.getElementById('emailCol');
+  if(!list.length){
+    col.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">Nenhum e-mail aqui</div><div class="empty-desc">Tente outra categoria ou período.</div></div>';
+    return;
+  }
+  col.innerHTML=list.map(e=>{
+    const av=avatarStyle(e.fromEmail);
+    const cat=CATS[e.categoria]||{label:e.categoria,tc:'t-info'};
+    const isS=e.id===selectedId;
+    const ptc=e.prioridade==='urgente'?'t-urgente':e.prioridade==='pendente'?'t-pendente':'t-info';
+    return`<div class="email-item${e.unread?' unread':''}${isS?' active':''}" onclick="selectEmail('${e.id}')">
+      <div class="e-top">
+        ${e.unread?'<div class="udot"></div>':'<div style="width:7px;flex-shrink:0"></div>'}
+        <div class="avatar" style="background:${av.bg};color:${av.c}">${ini(e.from)}</div>
+        <div class="e-meta">
+          <div class="e-from">${e.from}</div>
+          <div class="e-subject">${e.subject}</div>
+          <div class="e-preview">${e.resumo||e.snippet}</div>
+        </div>
+        <div class="e-right">
+          <span class="e-time">${tlabel(e.date)}</span>
+          <span class="tag ${ptc}">${e.prioridade}</span>
+          <span class="tag ${cat.tc}" style="font-size:9px">${cat.label}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  if(nextPageToken){
+    col.innerHTML+=`<div class="load-more"><button class="btn-load-more" onclick="loadMore()">Carregar mais e-mails →</button></div>`;
+  }
+}
+
+async function loadMore(){
+  if(isLoadingMore||!nextPageToken||!accessToken)return;
+  isLoadingMore=true;
+  const limit=parseInt(document.getElementById('limitSel').value)||50;
+  const kw=document.getElementById('searchKw').value.trim();
+  const days=document.getElementById('periodSel').value;
+  let q=`in:inbox newer_than:${days}d`;
+  if(kw)q+=` ${kw}`;
+  toast('Carregando mais e-mails...');
+  try{
+    const url=`https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(q)}&maxResults=${limit}&pageToken=${nextPageToken}`;
+    const r=await fetch(url,{headers:{Authorization:'Bearer '+accessToken}});
+    const d=await r.json();
+    const msgIds=d.messages||[];
+    nextPageToken=d.nextPageToken||null;
+    for(const{id}of msgIds){
+      try{
+        const mr=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,{headers:{Authorization:'Bearer '+accessToken}});
+        const msg=await mr.json();
+        const hdrs=msg?.payload?.headers||[];
+        const gh=n=>(hdrs.find(h=>h.name?.toLowerCase()===n.toLowerCase())?.value||'');
+        const from=gh('From')||'Desconhecido';
+        const fm=from.match(/^"?([^"<]*)"?\s*<(.+?)>$/)||from.match(/^"?([^"<]+)"?$/);
+        const fromName=fm?(fm[1]||'').trim()||from:from;
+        const fromEmail=fm&&fm[2]?fm[2]:from;
+        const subject=gh('Subject')||'(sem assunto)';
+        const snippet=msg.snippet||'';
+        const dh=gh('Date');
+        const date=dh?new Date(dh):new Date();
+        const unread=(msg.labelIds||[]).includes('UNREAD');
+        const cl=await classify(subject,snippet);
+        emails.push({id:msg.id,threadId:msg.threadId,from:fromName,fromEmail,subject,snippet,date,unread,
+          categoria:cl.categoria||'operacional',prioridade:cl.prioridade||'informativo',resumo:cl.resumo||''});
+      }catch(e){}
+    }
+    updateStats();updateCounts();renderList();
+    toast(`✓ +${msgIds.length} e-mails carregados`);
+  }catch(e){toast('Erro ao carregar mais.')}
+  isLoadingMore=false;
+}
+
+async function selectEmail(id){
+  selectedId=id;
+  const e=emails.find(x=>x.id===id);
+  if(!e)return;
+  e.unread=false;
+  updateStats();updateCounts();renderList();
+
+  const col=document.getElementById('detailCol');
+  col.className='detail-col visible';
+  const av=avatarStyle(e.fromEmail);
+  const cat=CATS[e.categoria]||{label:e.categoria,tc:'t-info'};
+  const ptc=e.prioridade==='urgente'?'t-urgente':e.prioridade==='pendente'?'t-pendente':'t-info';
+
+  col.innerHTML=`
+    <div class="d-subject">${e.subject}</div>
+    <div class="d-meta">
+      <div class="avatar" style="width:26px;height:26px;font-size:11px;background:${av.bg};color:${av.c}">${ini(e.from)}</div>
+      <span>${e.from}</span>
+      <span style="color:var(--muted);font-size:11px">${e.fromEmail}</span>
+      <span style="margin-left:auto;font-size:11px">${e.date.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+    </div>
+    <div class="d-tags">
+      <span class="tag ${ptc}">${e.prioridade}</span>
+      <span class="tag ${cat.tc}">${cat.label}</span>
+    </div>
+    <hr class="divider">
+    <div class="d-body">${e.snippet}</div>
+    <div class="d-actions">
+      <button class="btn-sm" onclick="doStar('${id}')">⭐ Estrelar</button>
+      <button class="btn-sm" onclick="doImportant('${id}')">🔖 Importante</button>
+      <button class="btn-sm" onclick="doRead('${id}')">✓ Lido</button>
+    </div>
+    <div class="ai-panel">
+      <div class="ai-header"><div class="ai-dot"></div> Sugestões de resposta com IA — ${cat.label}</div>
+      <div class="loading-row" id="aiLoad"><div class="spinner"></div> Gerando sugestões...</div>
+      <div id="sugList"></div>
+      <textarea class="reply-area" id="replyBox" placeholder="Clique em uma sugestão ou escreva aqui..."></textarea>
+      <div class="reply-actions">
+        <button class="btn-send" onclick="copyReply()">📋 Copiar resposta</button>
+        <button class="btn-sm" onclick="improveReply()">✨ Refinar com IA</button>
+      </div>
+    </div>`;
+
+  const sg=await genSuggestions(e.from,e.subject,e.snippet,e.categoria);
+  const aiLoad=document.getElementById('aiLoad');
+  if(aiLoad)aiLoad.style.display='none';
+  const sl=document.getElementById('sugList');
+  if(!sl)return;
+  if(sg.sugestoes?.length){
+    sl.innerHTML=sg.sugestoes.map(s=>`<button class="sug-item" onclick="useSug(this)">${s}</button>`).join('');
+  }else{
+    sl.innerHTML=`<div style="font-size:12px;color:var(--muted);margin-bottom:.75rem;padding:8px;background:rgba(239,68,68,.08);border-radius:8px;border:1px solid rgba(239,68,68,.2)">
+      ⚠️ Não foi possível gerar sugestões. Verifique sua API key da Anthropic nas configurações do Netlify.
+    </div>`;
+  }
+}
+
+function useSug(btn){
+  const rb=document.getElementById('replyBox');
+  if(rb)rb.value=btn.textContent;
+  document.querySelectorAll('.sug-item').forEach(b=>b.classList.remove('chosen'));
+  btn.classList.add('chosen');
+}
+
+function copyReply(){
+  const rb=document.getElementById('replyBox');
+  if(!rb?.value.trim()){toast('Selecione ou escreva uma resposta primeiro.');return}
+  navigator.clipboard.writeText(rb.value).then(()=>toast('✓ Resposta copiada!')).catch(()=>{
+    rb.select();document.execCommand('copy');toast('✓ Copiado!');
+  });
+}
+
+async function improveReply(){
+  const rb=document.getElementById('replyBox');
+  const txt=rb?.value?.trim();
+  if(!txt){toast('Escreva algo primeiro.');return}
+  const e=emails.find(x=>x.id===selectedId);
+  const cat=CATS[e?.categoria]?.label||'';
+  toast('Melhorando resposta...',5000);
+  try{
+    const result=await callAI([{role:'user',content:`Melhore esta resposta de e-mail para o contexto UniFECAF. Categoria: ${cat}. Tom profissional, direto e objetivo. Retorne apenas o texto da resposta melhorada, sem explicação:\n\n${txt}`}],500);
+    if(result&&rb)rb.value=result;
+    toast('✓ Resposta melhorada!');
+  }catch(e){toast('Erro ao melhorar. Verifique a API key.')}
+}
+
+function doStar(id){
+  if(accessToken){
+    fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}/modify`,{
+      method:'POST',headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},
+      body:JSON.stringify({addLabelIds:['STARRED']})
+    }).then(()=>toast('⭐ Estrelado no Gmail!')).catch(()=>toast('⭐ Estrelado!'));
+  }else toast('⭐ Estrelado!');
+}
+
+function doImportant(id){
+  if(accessToken){
+    fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}/modify`,{
+      method:'POST',headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},
+      body:JSON.stringify({addLabelIds:['IMPORTANT']})
+    }).then(()=>toast('🔖 Marcado como importante!')).catch(()=>toast('🔖 Marcado!'));
+  }else toast('🔖 Marcado!');
+}
+
+function doRead(id){
+  const e=emails.find(x=>x.id===id);
+  if(e){e.unread=false;}
+  if(accessToken){
+    fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}/modify`,{
+      method:'POST',headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},
+      body:JSON.stringify({removeLabelIds:['UNREAD']})
+    }).catch(()=>{});
+  }
+  updateStats();updateCounts();renderList();
+  toast('✓ Marcado como lido');
+}
+
+function setFilter(f,el){
+  activeFilter=f;
+  document.querySelectorAll('.cat-item').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderList();
+  document.getElementById('detailCol').className='detail-col';
+  selectedId=null;
+}
+
+function updateStats(){
+  document.getElementById('s-total').textContent=emails.length;
+  document.getElementById('s-unread').textContent=emails.filter(e=>e.unread).length;
+  document.getElementById('s-urgent').textContent=emails.filter(e=>e.prioridade==='urgente').length;
+  document.getElementById('s-aprov').textContent=emails.filter(e=>e.categoria==='aprovacao_desconto').length;
+  document.getElementById('s-bolsa').textContent=emails.filter(e=>['bolsa_integral','bolsa_funcionario'].includes(e.categoria)).length;
+}
+
+function updateCounts(){
+  document.getElementById('cnt-todos').textContent=emails.length;
+  document.getElementById('cnt-naoLido').textContent=emails.filter(e=>e.unread).length;
+  document.getElementById('cnt-urgente').textContent=emails.filter(e=>e.prioridade==='urgente').length;
+  Object.keys(CATS).forEach(k=>{
+    const el=document.getElementById('cnt-'+k);
+    if(el)el.textContent=emails.filter(e=>e.categoria===k).length;
+  });
+}
+
+function demoData(){
+  const n=Date.now();
+  return[
+    {id:'d1',threadId:'t1',from:'Polo Uberlândia',fromEmail:'polo.uberlandia@unifecaf.edu.br',subject:'Aprovação urgente — desconto aluno João Silva',snippet:'Lucas, preciso de aprovação de 30% de desconto para João Silva no curso de Administração. Aluno perdeu emprego e o contrato vence amanhã.',date:new Date(n-1800000),unread:true},
+    {id:'d2',threadId:'t2',from:'Polo Cuiabá MT',fromEmail:'polo.cuiaba@unifecaf.edu.br',subject:'Bolsa funcionário — dependente colaboradora Ana Paula',snippet:'Boa tarde! Preciso de aprovação de bolsa para dependente da colaboradora Ana Paula. Documentação em anexo.',date:new Date(n-7200000),unread:true},
+    {id:'d3',threadId:'t3',from:'Financeiro UniFECAF',fromEmail:'financeiro@fecaf.com.br',subject:'Inadimplência crítica P1 e P2 — Cuiabá 68%',snippet:'Lucas, polo Cuiabá com 68% de inadimplência P1/P2, muito acima da rede (23%). Plano de ação necessário urgente.',date:new Date(n-14400000),unread:true},
+    {id:'d4',threadId:'t4',from:'Polo Campo Grande MS',fromEmail:'polo.cg@unifecaf.edu.br',subject:'Meta junho — autorização campanha 20% Enfermagem',snippet:'Estamos em 42% da meta com 12 dias restantes. Solicito autorização para campanha de 20% nos cursos de Enfermagem e Pedagogia.',date:new Date(n-86400000),unread:true},
+    {id:'d5',threadId:'t5',from:'RH UniFECAF',fromEmail:'rh@fecaf.com.br',subject:'Aditivo contratual — consultor Marcos Vieira BH',snippet:'Segue para aprovação o aditivo do consultor Marcos Vieira referente à comissão extra de abril/2026. Prazo: 20/06.',date:new Date(n-172800000),unread:false},
+    {id:'d6',threadId:'t6',from:'Acadêmico UniFECAF',fromEmail:'academico@fecaf.com.br',subject:'27 alunos sem acesso AVA — polo Vitória ES',snippet:'Relatório: 27 alunos com matrícula ativa sem acesso ao AVA. Semestre já iniciado. Risco de evasão elevado.',date:new Date(n-259200000),unread:false},
+    {id:'d7',threadId:'t7',from:'Polo Nova Mutum MT',fromEmail:'polo.novamutum@unifecaf.edu.br',subject:'Bolsa integral solicitação — Pedro Alves, Gestão Pública',snippet:'Colaborador Pedro Alves solicita bolsa de 50% para Gestão Pública. Conforme política da rede. Aguardo aprovação.',date:new Date(n-345600000),unread:false},
+    {id:'d8',threadId:'t8',from:'Supervisão Comercial',fromEmail:'supervisao@fecaf.com.br',subject:'Reunião resultados maio — dados e pauta',snippet:'Dados consolidados maio/2026: 1.247 matrículas (+8%). Adimplência 76,4%. Reunião amanhã 9h.',date:new Date(n-432000000),unread:false},
+  ];
+}
+
+window.addEventListener('load',()=>{
+  const gid=localStorage.getItem('mdu_gid');
+  const akey=localStorage.getItem('mdu_akey');
+  if(gid)document.getElementById('googleClientId').value=gid;
+  if(akey)document.getElementById('anthropicKey').value=akey;
+});
+</script>
+</body>
+</html>
