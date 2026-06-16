@@ -389,7 +389,7 @@ function setProgress(pct,txt){
 // Chama IA via proxy Netlify Function
 async function callAI(messages, maxTokens=200){
   const body={
-    model:'claude-sonnet-4-6',
+    model:'claude-haiku-4-5-20251001',
     max_tokens:maxTokens,
     system:SYS,
     messages,
@@ -412,8 +412,7 @@ async function callAI(messages, maxTokens=200){
 async function classify(subject,snippet){
   try{
     const txt=await callAI([{role:'user',content:`Assunto: ${subject}\nPreview: ${snippet||'(sem preview)'}`}]);
-    const clean=txt.replace(/```json|```/g,'').trim();
-    return JSON.parse(clean);
+    const m=txt.match(/\{[\s\S]*?\}/); return m ? JSON.parse(m[0]) : JSON.parse(txt.replace(/```json|```/g,'').trim());
   }catch(e){
     console.warn('Classify fallback',e);
     return{categoria:'operacional',prioridade:'informativo',resumo:''};
@@ -425,7 +424,7 @@ async function genSuggestions(from,subject,snippet,cat){
   const sysExtra=SYS+`\n\nGere 3 sugestões de resposta curtas e prontas para uso. Tom profissional, direto, contexto "${catLabel}". SOMENTE JSON sem markdown:\n{"sugestoes":["resposta1","resposta2","resposta3"]}`;
   try{
     const body={
-      model:'claude-sonnet-4-6',
+      model:'claude-haiku-4-5-20251001',
       max_tokens:700,
       system:sysExtra,
       messages:[{role:'user',content:`De: ${from}\nAssunto: ${subject}\nConteúdo: ${snippet||'(sem conteúdo)'}`}],
@@ -438,8 +437,7 @@ async function genSuggestions(from,subject,snippet,cat){
     });
     if(!r.ok)throw new Error('Proxy '+r.status);
     const d=await r.json();
-    const txt=(d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim();
-    return JSON.parse(txt);
+    const raw=d.content?.[0]?.text||'{}'; const mx=raw.match(/\{[\s\S]*\}/); return mx ? JSON.parse(mx[0]) : JSON.parse(raw.replace(/```json|```/g,'').trim());
   }catch(e){
     console.error('genSuggestions error',e);
     return{sugestoes:[]};
