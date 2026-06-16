@@ -232,9 +232,13 @@ input[type=text]:focus,input[type=password]:focus{border-color:var(--accent)}
     </div>
 
     <div class="sidebar-bottom">
-      <div class="account-chip">
+      <div class="account-chip" style="margin-bottom:8px">
         <div class="account-dot"></div>
         <span id="accountEmail" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Não conectado</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted)">
+        <span>Cache: <span id="cacheCount">0</span> e-mails</span>
+        <button onclick="clearCache();updateCacheDisplay()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:0;text-decoration:underline">Limpar</button>
       </div>
     </div>
   </div>
@@ -328,6 +332,47 @@ Prioridades: urgente (ação imediata, prazo curto, aprovação pendente) | pend
 Responda SOMENTE com JSON sem markdown, sem explicação:
 {"categoria":"id_aqui","prioridade":"urgente","resumo":"resumo em até 12 palavras"}`;
 
+// Cache de classificações no localStorage
+const CACHE_KEY = 'mdu_classify_cache';
+const CACHE_VERSION = 'v1';
+
+function loadCache(){
+  try{
+    const raw = localStorage.getItem(CACHE_KEY);
+    if(!raw) return {};
+    const obj = JSON.parse(raw);
+    return obj.version === CACHE_VERSION ? obj.data : {};
+  }catch(e){ return {}; }
+}
+
+function saveCache(cache){
+  try{
+    localStorage.setItem(CACHE_KEY, JSON.stringify({version:CACHE_VERSION, data:cache}));
+  }catch(e){ console.warn('Cache cheio:', e); }
+}
+
+function getCached(msgId){
+  const cache = loadCache();
+  return cache[msgId] || null;
+}
+
+function setCached(msgId, result){
+  const cache = loadCache();
+  cache[msgId] = result;
+  saveCache(cache);
+}
+
+function getCacheStats(){
+  const cache = loadCache();
+  return Object.keys(cache).length;
+}
+
+function clearCache(){
+  localStorage.removeItem(CACHE_KEY);
+  toast('🗑️ Cache limpo! Próxima busca vai reclassificar tudo.');
+}
+
+
 let emails=[], activeFilter='todos', selectedId=null;
 let ANTHROPIC_KEY='', GOOGLE_CLIENT_ID='', accessToken='';
 let tokenClient=null;
@@ -409,10 +454,18 @@ async function callAI(messages, maxTokens=200){
   return d.content?.[0]?.text||'';
 }
 
-async function classify(subject,snippet){
+async function classify(msgId, subject, snippet){
+  // Verifica cache primeiro
+  const cached = getCached(msgId);
+  if(cached){
+    return cached;
+  }
   try{
     const txt=await callAI([{role:'user',content:`Assunto: ${subject}\nPreview: ${snippet||'(sem preview)'}`}]);
-    const m=txt.match(/\{[\s\S]*?\}/); return m ? JSON.parse(m[0]) : JSON.parse(txt.replace(/```json|```/g,'').trim());
+    const m=txt.match(/\{[\s\S]*?\}/);
+    const result = m ? JSON.parse(m[0]) : JSON.parse(txt.replace(/```json|```/g,'').trim());
+    setCached(msgId, result);
+    return result;
   }catch(e){
     console.warn('Classify fallback',e);
     return{categoria:'operacional',prioridade:'informativo',resumo:''};
@@ -513,7 +566,7 @@ async function fetchEmails(){
       const dh=gh('Date');
       const date=dh?new Date(dh):new Date(Date.now()-i*3600000*4);
       const unread=(msg.labelIds||[]).includes('UNREAD');
-      const cl=await classify(subject,snippet);
+      const cl=await classify(msg.id, subject,snippet);
       emails.push({id:msg.id,threadId:msg.threadId,from:fromName,fromEmail,subject,snippet,date,unread,
         categoria:cl.categoria||'operacional',prioridade:cl.prioridade||'informativo',resumo:cl.resumo||''});
       setProgress(45+Math.round((i+1)/raw.length*50),`IA classificando ${i+1}/${raw.length}...`);
@@ -526,7 +579,7 @@ async function fetchEmails(){
   document.getElementById('fetchSpinner').style.display='none';
   document.getElementById('fetchTxt').textContent='⟳ Buscar';
   document.getElementById('statsRow').style.display='grid';
-  updateStats();updateCounts();renderList();
+  updateStats();updateCounts();renderList();updateCacheDisplay();
 }
 
 async function classifyAll(list){
@@ -640,7 +693,7 @@ async function loadMore(){
         const dh=gh('Date');
         const date=dh?new Date(dh):new Date();
         const unread=(msg.labelIds||[]).includes('UNREAD');
-        const cl=await classify(subject,snippet);
+        const cl=await classify(msg.id, subject,snippet);
         emails.push({id:msg.id,threadId:msg.threadId,from:fromName,fromEmail,subject,snippet,date,unread,
           categoria:cl.categoria||'operacional',prioridade:cl.prioridade||'informativo',resumo:cl.resumo||''});
       }catch(e){}
@@ -807,6 +860,11 @@ function demoData(){
     {id:'d7',threadId:'t7',from:'Polo Nova Mutum MT',fromEmail:'polo.novamutum@unifecaf.edu.br',subject:'Bolsa integral solicitação — Pedro Alves, Gestão Pública',snippet:'Colaborador Pedro Alves solicita bolsa de 50% para Gestão Pública. Conforme política da rede. Aguardo aprovação.',date:new Date(n-345600000),unread:false},
     {id:'d8',threadId:'t8',from:'Supervisão Comercial',fromEmail:'supervisao@fecaf.com.br',subject:'Reunião resultados maio — dados e pauta',snippet:'Dados consolidados maio/2026: 1.247 matrículas (+8%). Adimplência 76,4%. Reunião amanhã 9h.',date:new Date(n-432000000),unread:false},
   ];
+}
+
+function updateCacheDisplay(){
+  const el = document.getElementById('cacheCount');
+  if(el) el.textContent = getCacheStats();
 }
 
 window.addEventListener('load',()=>{
